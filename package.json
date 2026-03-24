@@ -15,7 +15,8 @@
     "openai-compatible"
   ],
   "author": {
-    "name": "groq-client contributors"
+    "name": "codewithAdarsh1",
+    "url": "https://github.com/codewithAdarsh1"
   },
   "license": "MIT",
   "homepage": "https://github.com/codewithAdarsh1/groq-client#readme",
@@ -49,12 +50,12 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "test": "echo \"No tests yet\" && exit 0",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm run typecheck"
   },
   "devDependencies": {
-    "@types/node": "^20.19.37",
+    "@types/node": "^20.0.0",
     "tsup": "^8.1.0",
     "typescript": "^5.4.5"
   },

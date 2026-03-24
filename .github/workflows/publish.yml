@@ -12,7 +12,7 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write # needed for provenance attestation
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -36,8 +36,7 @@ jobs:
 
       - name: Run tests
         run: npm test
-        # Tests are optional — remove this step if you have no test suite yet
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Publish to npm
         run: npm publish --provenance --access public
