@@ -1,6 +1,6 @@
 {
   "name": "simple-groq",
-  "version": "1.0.6",
+  "version": "1.0.0",
   "description": "A lightweight, zero-config Groq API wrapper for Node.js/TypeScript with streaming, chat history, and built-in model constants.",
   "keywords": [
     "groq",
@@ -19,13 +19,13 @@
     "url": "https://github.com/codewithAdarsh1"
   },
   "license": "MIT",
-  "homepage": "https://github.com/codewithAdarsh1/groq-client#readme",
+  "homepage": "https://github.com/codewithAdarsh1/simple-groq#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/codewithAdarsh1/groq-client.git"
+    "url": "git+https://github.com/codewithAdarsh1/simple-groq.git"
   },
   "bugs": {
-    "url": "https://github.com/codewithAdarsh1/groq-client/issues"
+    "url": "https://github.com/codewithAdarsh1/simple-groq/issues"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
