@@ -1,6 +1,6 @@
 {
-  "name": "@adarshchaudhary/groq-client",
-  "version": "1.0.3",
+  "name": "groq-client",
+  "version": "1.0.4",
   "description": "A lightweight, zero-config Groq API wrapper for Node.js/TypeScript with streaming, chat history, and built-in model constants.",
   "keywords": [
     "groq",
