@@ -42,6 +42,8 @@ const answer = await groq.ask("What is the capital of France?");
 console.log(answer); // "Paris"
 ```
 
+> **Note:** The above example uses ES Modules (`import`). Ensure you have `"type": "module"` in your `package.json`. If you are using CommonJS, use `const { GroqClient } = require("simple-groq");` and wrap your `await` in an async function.
+
 ---
 
 ## Environment Variable
