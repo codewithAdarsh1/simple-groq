@@ -1,8 +1,8 @@
-# groq-client
+# simple-groq
 
-[![npm version](https://img.shields.io/npm/v/groq-client?color=brightgreen&style=flat-square)](https://www.npmjs.com/package/groq-client)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/groq-client?style=flat-square&label=minzipped)](https://bundlephobia.com/package/groq-client)
-[![license](https://img.shields.io/npm/l/groq-client?style=flat-square)](./LICENSE)
+[![npm version](https://img.shields.io/npm/v/simple-groq?color=brightgreen&style=flat-square)](https://www.npmjs.com/package/simple-groq)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/simple-groq?style=flat-square&label=minzipped)](https://bundlephobia.com/package/simple-groq)
+[![license](https://img.shields.io/npm/l/simple-groq?style=flat-square)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-ready-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 
 > A lightweight, zero-config Groq API wrapper for Node.js & browsers. Simpler and smaller than the official SDK.
@@ -23,11 +23,11 @@
 ## Install
 
 ```bash
-npm install groq-client
+npm install simple-groq
 # or
-yarn add groq-client
+yarn add simple-groq
 # or
-pnpm add groq-client
+pnpm add simple-groq
 ```
 
 ---
@@ -35,7 +35,7 @@ pnpm add groq-client
 ## Quick Start
 
 ```ts
-import { GroqClient } from "groq-client";
+import { GroqClient } from "simple-groq";
 
 const groq = new GroqClient({ apiKey: "gsk_..." });
 const answer = await groq.ask("What is the capital of France?");
@@ -160,7 +160,7 @@ All request methods accept an optional `CompletionOptions` object:
 ## Available Models
 
 ```ts
-import { GROQ_MODELS } from "groq-client";
+import { GROQ_MODELS } from "simple-groq";
 ```
 
 | Constant | Model ID |
@@ -186,7 +186,7 @@ import { GROQ_MODELS } from "groq-client";
 All API errors throw a `GroqError` with helpful metadata:
 
 ```ts
-import { GroqClient, GroqError } from "groq-client";
+import { GroqClient, GroqError } from "simple-groq";
 
 try {
   const reply = await groq.ask("Hello");
@@ -205,7 +205,7 @@ try {
 ## Streaming Example
 
 ```ts
-import { GroqClient } from "groq-client";
+import { GroqClient } from "simple-groq";
 
 const groq = new GroqClient({ apiKey: process.env.GROQ_API_KEY });
 
@@ -223,7 +223,7 @@ console.log();
 ## Chat History Example
 
 ```ts
-import { GroqClient } from "groq-client";
+import { GroqClient } from "simple-groq";
 
 const groq = new GroqClient();
 const history = groq.createHistory();
@@ -255,4 +255,4 @@ Contributions are welcome! Please open an issue or submit a pull request.
 
 ## License
 
-[MIT](./LICENSE) © groq-client contributors
+[MIT](./LICENSE) © simple-groq contributors
