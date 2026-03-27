@@ -51,6 +51,22 @@ const answer = await groq.ask("What is the capital of France?");
 console.log(answer); // "Paris"
 ```
 
+> **Note:** The above example uses ES Modules (`import`). Ensure you have `"type": "module"` in your `package.json`. If you are using CommonJS, use `const { GroqClient } = require("simple-groq");` and wrap your `await` in an async function.
+
+---
+
+## Environment Variable
+
+Set `GROQ_API_KEY` in your environment and skip the `apiKey` option entirely:
+
+```bash
+export GROQ_API_KEY=gsk_your_key_here
+```
+
+```ts
+const groq = new GroqClient(); // reads GROQ_API_KEY automatically
+```
+
 ---
 
 ## Embed Chat Widget
@@ -384,17 +400,7 @@ const optimizer = groq.withOptimizer({ cacheTtl: 60_000 });
 const budget = GroqClient.createBudget({ maxTokensPerSession: 10_000 });
 ```
 
----
 
-## Environment Variable
-
-```bash
-export GROQ_API_KEY=gsk_your_key_here
-```
-
-```ts
-const groq = new GroqClient(); // reads GROQ_API_KEY automatically
-```
 
 ---
 
