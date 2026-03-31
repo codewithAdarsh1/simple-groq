@@ -7,17 +7,20 @@
  *   GROQ_API_KEY=gsk_... npx tsx examples/streaming.ts
  */
 
-import { GroqClient, GROQ_MODELS, type Message } from "../src/index.js";
+import { AIClient, GROQ_MODELS, type Message } from "../src/index.js";
 
 async function main() {
-  const groq = new GroqClient({
+  // Initialise the universal client for Groq
+  const ai = new AIClient({
+    provider: "groq",
+    apiKey: process.env.GROQ_API_KEY, // Or it auto-reads expected env vars
     model: GROQ_MODELS.LLAMA3_70B,
   });
 
   const messages: Message[] = [
     {
       role: "system",
-      content: "You are a creative storyteller. Keep responses under 150 words.",
+      content: "You are a creative storyteller. Keep responses under 50 words.",
     },
     {
       role: "user",
@@ -30,14 +33,14 @@ async function main() {
 
   let totalChunks = 0;
 
-  for await (const chunk of groq.stream(messages)) {
+  for await (const chunk of ai.stream(messages)) {
     // Write each token to stdout as it arrives
     process.stdout.write(chunk.content);
     totalChunks++;
 
     if (chunk.done) {
       console.log("\n");
-      console.log(`--- Stream complete (${totalChunks} chunks, finish reason: ${chunk.finishReason}) ---`);
+      console.log(`--- Stream complete (${totalChunks} chunks) ---`);
     }
   }
 }

@@ -7,15 +7,17 @@
  *   GROQ_API_KEY=gsk_... npx tsx examples/chat-history.ts
  */
 
-import { GroqClient, GROQ_MODELS } from "../src/index.js";
+import { AIClient, GROQ_MODELS } from "../src/index.js";
 
 async function main() {
-  const groq = new GroqClient({
+  const ai = new AIClient({
+    provider: "groq",
+    apiKey: process.env.GROQ_API_KEY,
     model: GROQ_MODELS.LLAMA3_8B, // faster model — great for chat
   });
 
   // Create a stateful history object
-  const history = groq.createHistory();
+  const history = ai.createHistory();
 
   // Set an optional system prompt
   history.add("system", "You are a helpful assistant with a great memory. Keep answers brief.");
@@ -25,7 +27,7 @@ async function main() {
   console.log(`User: ${userMsg1}`);
   history.add("user", userMsg1);
 
-  const reply1 = await groq.chat(history.messages);
+  const reply1 = await ai.chat(history.messages);
   history.add("assistant", reply1);
   console.log(`Assistant: ${reply1}\n`);
 
@@ -34,7 +36,7 @@ async function main() {
   console.log(`User: ${userMsg2}`);
   history.add("user", userMsg2);
 
-  const reply2 = await groq.chat(history.messages);
+  const reply2 = await ai.chat(history.messages);
   history.add("assistant", reply2);
   console.log(`Assistant: ${reply2}\n`);
 
@@ -43,7 +45,7 @@ async function main() {
   console.log(`User: ${userMsg3}`);
   history.add("user", userMsg3);
 
-  const reply3 = await groq.chat(history.messages);
+  const reply3 = await ai.chat(history.messages);
   history.add("assistant", reply3);
   console.log(`Assistant: ${reply3}\n`);
 
