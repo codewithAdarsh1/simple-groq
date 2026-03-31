@@ -1,23 +1,23 @@
 <div align="center">
 
-# ❖ any-ai-sdk
+# ❖ multi-ai-sdk
 
 **The Universal, Zero-Dependency Mega-Wrapper for 18 Generative AI APIs.**
 
-[![npm version](https://img.shields.io/npm/v/any-ai-sdk?color=000000&style=for-the-badge&logo=npm)](https://www.npmjs.com/package/any-ai-sdk)
+[![npm version](https://img.shields.io/npm/v/multi-ai-sdk?color=000000&style=for-the-badge&logo=npm)](https://www.npmjs.com/package/multi-ai-sdk)
 [![TypeScript](https://img.shields.io/badge/TypeScript-READY-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](./LICENSE)
 
 <p align="center">
   Tired of juggling the official <code>openai</code>, <code>@anthropic-ai/sdk</code>, and <code>@google/generative-ai</code> packages? <br/>
-  <b>any-ai-sdk</b> unifies all major AI providers into one tiny, universal package using pure <code>fetch()</code>.
+  <b>multi-ai-sdk</b> unifies all major AI providers into one tiny, universal package using pure <code>fetch()</code>.
 </p>
 
 </div>
 
 ---
 
-## ✨ Why any-ai-sdk?
+## ✨ Why multi-ai-sdk?
 
 1. **One API To Rule Them All**: Write your app once. Swap between OpenAI, Gemini, Claude, and Groq by changing a single string constructor.
 2. **Zero Dependencies**: Pure native `fetch`. It works flawlessly in Node.js, Deno, Bun, Cloudflare Workers, and all modern browsers. `< 10KB` minified.
@@ -73,7 +73,7 @@
 ## 📦 Installation
 
 ```bash
-npm install any-ai-sdk
+npm install multi-ai-sdk
 ```
 
 *(Also fully compatible with `yarn add`, `pnpm add`, and `bun add`)*
@@ -85,7 +85,7 @@ npm install any-ai-sdk
 The core philosophy is **1 API, Any Provider**.
 
 ```ts
-import { AIClient, GROQ_MODELS, GEMINI_MODELS } from "any-ai-sdk";
+import { AIClient, GROQ_MODELS, GEMINI_MODELS } from "multi-ai-sdk";
 
 // 1. Initialise Groq (Llama 3)
 const groq = new AIClient({ provider: "groq", apiKey: "gsk_..." });
@@ -224,7 +224,7 @@ Drop a fully customizable, themeable AI chatbot onto **any webpage** in 2 lines.
 
 ```html
 <script type="module">
-  import { embedChat } from "any-ai-sdk";
+  import { embedChat } from "multi-ai-sdk";
   
   const cleanup = embedChat({
     provider: "gemini",
@@ -276,7 +276,7 @@ Drop a fully customizable, themeable AI chatbot onto **any webpage** in 2 lines.
 Restrict total API usage directly at the client level to prevent accidental cost overruns in production endpoints.
 
 ```ts
-import { AIClient, TokenBudget } from "any-ai-sdk";
+import { AIClient, TokenBudget } from "multi-ai-sdk";
 
 const ai = new AIClient({ provider: "openai", apiKey: "sk-..." });
 const budget = new TokenBudget({
@@ -302,7 +302,7 @@ console.log(budget.usage);
 Collapse redundant network requests instantly. Saves API costs and load times for duplicate prompt executions.
 
 ```ts
-import { AIClient } from "any-ai-sdk";
+import { AIClient } from "multi-ai-sdk";
 
 const ai = new AIClient({ provider: "gemini", apiKey: "AIza..." });
 const optimizer = ai.withOptimizer({ 
@@ -321,11 +321,11 @@ console.log(optimizer.stats);
 
 ## 🔙 Migrating from `simple-groq`
 
-If you are upgrading from `simple-groq` v1.x.x, **your existing codebase will not break**. `any-ai-sdk` internally exports `GroqClient` and `GroqError` as strict legacy aliases to the new unified models with default configs intact.
+If you are upgrading from `simple-groq` v1.x.x, **your existing codebase will not break**. `multi-ai-sdk` internally exports `GroqClient` and `GroqError` as strict legacy aliases to the new unified models with default configs intact.
 
 ```ts
 // Perfectly backward compatible
-import { GroqClient } from "any-ai-sdk"; 
+import { GroqClient } from "multi-ai-sdk"; 
 
 const client = new GroqClient({ apiKey: "gsk_..." }); 
 await client.ask("Hello");
