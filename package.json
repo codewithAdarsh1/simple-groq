@@ -1,6 +1,6 @@
 {
   "name": "multi-ai-sdk",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Universal multi-provider AI SDK. Single lightweight API for 18 providers (Groq, OpenAI, Gemini, Claude, Mistral, DeepSeek, etc). Features: auto-fallback, JSON repair, context window guards, and embeddable chat widget.",
   "keywords": [
     "ai-sdk",
