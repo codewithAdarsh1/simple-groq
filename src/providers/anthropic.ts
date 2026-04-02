@@ -118,17 +118,20 @@ export class AnthropicAdapter implements ProviderAdapter {
             const json = JSON.parse(raw) as {
               type: string;
               delta?: { type: string; text?: string };
-              message?: { stop_reason?: string };
             };
 
             if (eventType === "content_block_delta" && json.delta?.type === "text_delta") {
+              // Normal text chunk — not done yet
               yield {
                 content: json.delta.text ?? "",
                 done: false,
                 finishReason: null,
               };
-            } else if (eventType === "message_delta" && json.delta) {
+            } else if (eventType === "message_stop") {
+              // BUG FIX: only emit the terminal done chunk on message_stop,
+              // NOT on message_delta (which fires repeatedly for usage stats).
               yield { content: "", done: true, finishReason: "stop" };
+              return;
             }
           } catch {}
         }

@@ -3,9 +3,12 @@
  * Supports all 17 providers via AIClient under the hood.
  */
 
-// Import AIClient from the client module to avoid circular deps
+// BUG FIX: import AbortableStream from "./client" directly, NOT from "./index".
+// Importing from "./index" created a circular dependency:
+//   index.ts → embed.ts → index.ts
 import { AIClient } from "./client";
-import type { ProviderName } from "./client";
+import type { ProviderName, AbortableStream } from "./client";
+import type { Message } from "./providers/base";
 
 
 export interface EmbedChatBehavior {
@@ -155,8 +158,11 @@ export function embedChat(options: EmbedChatOptions): () => void {
 
   const providerSubtitle = subtitle ?? `Powered by ${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
 
-  const ai = new AIClient({ provider, apiKey });
-  const defaultModel = initialModel ?? ai["adapter"].defaultModel;
+  const ai = new AIClient({ provider, apiKey, model: initialModel });
+
+  // BUG FIX: use the public getter instead of ai["adapter"].defaultModel
+  // which bypassed TypeScript's private access control.
+  const defaultModel = ai.resolvedDefaultModel;
 
   const theme = {
     primaryColor: t.primaryColor ?? "#6366f1",
@@ -171,7 +177,7 @@ export function embedChat(options: EmbedChatOptions): () => void {
     bubbleRadius: t.bubbleRadius ?? 12,
     width: t.width ?? 370,
     messagesHeight: t.messagesHeight ?? 360,
-    shadow: SHADOW_MAP[t.shadow ?? "medium"],
+    shadow: SHADOW_MAP[t.shadow ?? "medium"] ?? SHADOW_MAP["medium"],
     darkMode: t.darkMode ?? false,
   };
 
@@ -328,7 +334,7 @@ export function embedChat(options: EmbedChatOptions): () => void {
   const suggestionsEl = root.querySelector("#sgq-suggestions") as HTMLDivElement | null;
 
   let open = false;
-  const history: import("./providers/base").Message[] = [{ role: "system", content: systemPrompt }];
+  const history: Message[] = [{ role: "system", content: systemPrompt }];
   let totalTokens = 0;
   const estimateTokens = (s: string) => Math.ceil(s.split(/\s+/).length * 1.35);
   const scroll = () => { messagesEl.scrollTop = messagesEl.scrollHeight; };
@@ -402,7 +408,7 @@ export function embedChat(options: EmbedChatOptions): () => void {
     chip.addEventListener("click", () => { inputEl.value = (chip as HTMLElement).textContent ?? ""; if (suggestionsEl) suggestionsEl.style.display = "none"; sendMessage(); });
   });
 
-  let activeStream: import("./index").AbortableStream | null = null;
+  let activeStream: AbortableStream | null = null;
 
   const sendMessage = async () => {
     const text = inputEl.value.trim();
