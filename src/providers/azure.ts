@@ -1,5 +1,5 @@
 import { OpenAICompatAdapter } from "./base";
-import type { CompletionOptions } from "./base";
+import type { CompletionOptions, Message } from "./base";
 
 export class AzureAdapter extends OpenAICompatAdapter {
   readonly baseUrl: string;
@@ -28,7 +28,7 @@ export class AzureAdapter extends OpenAICompatAdapter {
 
   // Azure endpoint already encodes the model — remove it from body
   protected override buildBody(
-    messages: import("./base").Message[],
+    messages: Message[],
     opts: CompletionOptions | undefined,
     stream: boolean
   ): Record<string, unknown> {

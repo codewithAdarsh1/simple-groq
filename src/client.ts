@@ -557,6 +557,11 @@ export class AIClient {
     };
   }
 
+  /** Exposes the resolved default model string (used by embedChat). */
+  get resolvedDefaultModel(): string {
+    return this.defaultModel;
+  }
+
   /** Wrap with response caching + deduplication. */
   withOptimizer(options?: ApiOptimizerOptions): ApiOptimizer {
     return new ApiOptimizer(this, options);
