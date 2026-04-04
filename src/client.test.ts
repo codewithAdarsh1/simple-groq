@@ -36,6 +36,7 @@ describe("AIClient", () => {
   describe("Error Handling", () => {
     it("should throw error for unknown provider", () => {
       expect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         new AIClient({ provider: "unknown" as any, apiKey: "test" });
       }).toThrow();
     });
