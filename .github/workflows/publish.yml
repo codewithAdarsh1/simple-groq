@@ -10,9 +10,6 @@ jobs:
     name: Build & Publish
     runs-on: ubuntu-latest
 
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     permissions:
       contents: read
       id-token: write
@@ -21,7 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 22
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -31,15 +28,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint
+        run: npm run lint
+
       - name: Type-check
-        run: npx tsc --noEmit
+        run: npm npx tsc --noEmit
 
       - name: Build
         run: npm run build
 
       - name: Run tests
-        run: npm test
-        continue-on-error: true
+        run: npm run test
 
       - name: Publish to npm
         run: npm publish --provenance --access public

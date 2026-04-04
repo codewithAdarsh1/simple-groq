@@ -28,7 +28,10 @@ export class AnthropicAdapter implements ProviderAdapter {
     const systemMsg = messages.find((m) => m.role === "system");
     const rest = messages
       .filter((m) => m.role !== "system")
-      .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+      .map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
 
     const body: Record<string, unknown> = {
       model: opts?.model ?? this.defaultModel,
@@ -40,20 +43,25 @@ export class AnthropicAdapter implements ProviderAdapter {
     if (opts?.temperature !== undefined) body["temperature"] = opts.temperature;
     if (opts?.topP !== undefined) body["top_p"] = opts.topP;
     if (opts?.stop !== undefined)
-      body["stop_sequences"] = Array.isArray(opts.stop) ? opts.stop : [opts.stop];
+      body["stop_sequences"] = Array.isArray(opts.stop)
+        ? opts.stop
+        : [opts.stop];
 
     return body;
   }
 
   private async throwIfError(res: Response): Promise<void> {
     if (!res.ok) {
-      const body = await res.json().catch(() => ({})) as {
+      const body = (await res.json().catch(() => ({}))) as {
         error?: { message?: string; type?: string };
       };
-      throw new AIError(body.error?.message ?? `Anthropic API error ${res.status}`, {
-        status: res.status,
-        type: body.error?.type,
-      });
+      throw new AIError(
+        body.error?.message ?? `Anthropic API error ${res.status}`,
+        {
+          status: res.status,
+          type: body.error?.type,
+        }
+      );
     }
   }
 
@@ -120,7 +128,10 @@ export class AnthropicAdapter implements ProviderAdapter {
               delta?: { type: string; text?: string };
             };
 
-            if (eventType === "content_block_delta" && json.delta?.type === "text_delta") {
+            if (
+              eventType === "content_block_delta" &&
+              json.delta?.type === "text_delta"
+            ) {
               // Normal text chunk — not done yet
               yield {
                 content: json.delta.text ?? "",

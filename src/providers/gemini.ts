@@ -8,8 +8,13 @@ import {
 } from "./base";
 
 type GeminiRole = "user" | "model";
-interface GeminiPart { text: string }
-interface GeminiContent { role: GeminiRole; parts: GeminiPart[] }
+interface GeminiPart {
+  text: string;
+}
+interface GeminiContent {
+  role: GeminiRole;
+  parts: GeminiPart[];
+}
 
 function toGeminiContents(messages: Message[]): {
   systemInstruction?: { parts: GeminiPart[] };
@@ -51,11 +56,15 @@ export class GeminiAdapter implements ProviderAdapter {
     if (systemInstruction) body["systemInstruction"] = systemInstruction;
 
     const genConfig: Record<string, unknown> = {};
-    if (opts?.temperature !== undefined) genConfig["temperature"] = opts.temperature;
-    if (opts?.maxTokens !== undefined) genConfig["maxOutputTokens"] = opts.maxTokens;
+    if (opts?.temperature !== undefined)
+      genConfig["temperature"] = opts.temperature;
+    if (opts?.maxTokens !== undefined)
+      genConfig["maxOutputTokens"] = opts.maxTokens;
     if (opts?.topP !== undefined) genConfig["topP"] = opts.topP;
     if (opts?.stop !== undefined)
-      genConfig["stopSequences"] = Array.isArray(opts.stop) ? opts.stop : [opts.stop];
+      genConfig["stopSequences"] = Array.isArray(opts.stop)
+        ? opts.stop
+        : [opts.stop];
     if (opts?.responseFormat?.type === "json_object")
       genConfig["responseMimeType"] = "application/json";
 
@@ -76,16 +85,23 @@ export class GeminiAdapter implements ProviderAdapter {
     });
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({})) as { error?: { message?: string } };
-      throw new AIError(body.error?.message ?? `Gemini API error ${res.status}`, {
-        status: res.status,
-      });
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: { message?: string };
+      };
+      throw new AIError(
+        body.error?.message ?? `Gemini API error ${res.status}`,
+        {
+          status: res.status,
+        }
+      );
     }
 
     const data = (await res.json()) as {
       candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
     };
-    return data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "";
+    return (
+      data.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? ""
+    );
   }
 
   async *stream(
@@ -103,10 +119,15 @@ export class GeminiAdapter implements ProviderAdapter {
     });
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({})) as { error?: { message?: string } };
-      throw new AIError(body.error?.message ?? `Gemini API error ${res.status}`, {
-        status: res.status,
-      });
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: { message?: string };
+      };
+      throw new AIError(
+        body.error?.message ?? `Gemini API error ${res.status}`,
+        {
+          status: res.status,
+        }
+      );
     }
     if (!res.body) throw new AIError("Response body is null");
 

@@ -33,8 +33,17 @@ export interface ProviderAdapter {
   readonly defaultModel: string;
   /** Estimated context limit in tokens */
   readonly contextLimit: number;
-  chat(messages: Message[], opts: CompletionOptions | undefined, apiKey: string): Promise<string>;
-  stream(messages: Message[], opts: CompletionOptions | undefined, apiKey: string, signal?: AbortSignal): AsyncGenerator<StreamChunk, void, unknown>;
+  chat(
+    messages: Message[],
+    opts: CompletionOptions | undefined,
+    apiKey: string
+  ): Promise<string>;
+  stream(
+    messages: Message[],
+    opts: CompletionOptions | undefined,
+    apiKey: string,
+    signal?: AbortSignal
+  ): AsyncGenerator<StreamChunk, void, unknown>;
 }
 
 // ─── Error ────────────────────────────────────────────────────────────────────
@@ -151,12 +160,17 @@ export abstract class OpenAICompatAdapter implements ProviderAdapter {
 
   protected async throwIfError(res: Response): Promise<void> {
     if (!res.ok) {
-      let body: { error?: { message?: string; type?: string; code?: string | number } } = {};
-      try { body = await res.json(); } catch {}
-      throw new AIError(
-        body.error?.message ?? `API error ${res.status}`,
-        { status: res.status, type: body.error?.type, code: body.error?.code }
-      );
+      let body: {
+        error?: { message?: string; type?: string; code?: string | number };
+      } = {};
+      try {
+        body = await res.json();
+      } catch {}
+      throw new AIError(body.error?.message ?? `API error ${res.status}`, {
+        status: res.status,
+        type: body.error?.type,
+        code: body.error?.code,
+      });
     }
   }
 

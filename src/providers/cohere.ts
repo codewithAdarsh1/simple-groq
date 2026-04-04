@@ -33,13 +33,15 @@ export class CohereAdapter implements ProviderAdapter {
     if (opts?.maxTokens !== undefined) body["max_tokens"] = opts.maxTokens;
     if (opts?.topP !== undefined) body["p"] = opts.topP;
     if (opts?.stop !== undefined)
-      body["stop_sequences"] = Array.isArray(opts.stop) ? opts.stop : [opts.stop];
+      body["stop_sequences"] = Array.isArray(opts.stop)
+        ? opts.stop
+        : [opts.stop];
     return body;
   }
 
   private async throwIfError(res: Response): Promise<void> {
     if (!res.ok) {
-      const body = await res.json().catch(() => ({})) as { message?: string };
+      const body = (await res.json().catch(() => ({}))) as { message?: string };
       throw new AIError(body.message ?? `Cohere API error ${res.status}`, {
         status: res.status,
       });
@@ -61,9 +63,7 @@ export class CohereAdapter implements ProviderAdapter {
     const data = (await res.json()) as {
       message?: { content?: Array<{ type: string; text: string }> };
     };
-    return (
-      data.message?.content?.find((b) => b.type === "text")?.text ?? ""
-    );
+    return data.message?.content?.find((b) => b.type === "text")?.text ?? "";
   }
 
   async *stream(

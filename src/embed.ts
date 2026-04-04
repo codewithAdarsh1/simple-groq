@@ -10,7 +10,6 @@ import { AIClient } from "./client";
 import type { ProviderName, AbortableStream } from "./client";
 import type { Message } from "./providers/base";
 
-
 export interface EmbedChatBehavior {
   allowTopics?: string[];
   blockTopics?: string[];
@@ -91,15 +90,20 @@ function scrapePageContext(maxChars = 4000, selector = "body"): string {
   return [...new Set(parts)].join("\n").slice(0, maxChars);
 }
 
-function buildSystemPrompt(options: EmbedChatOptions, pageContext: string): string {
+function buildSystemPrompt(
+  options: EmbedChatOptions,
+  pageContext: string
+): string {
   if (options.systemPrompt) return options.systemPrompt;
   const b = options.behavior ?? {};
   const name = options.assistantName ?? "Assistant";
   const personality = b.personality ?? "helpful and concise";
   const lengthHint =
-    b.replyLength === "short" ? "Keep replies to 1-2 sentences."
-    : b.replyLength === "long" ? "Provide detailed, thorough answers."
-    : "Keep replies to a short paragraph.";
+    b.replyLength === "short"
+      ? "Keep replies to 1-2 sentences."
+      : b.replyLength === "long"
+        ? "Provide detailed, thorough answers."
+        : "Keep replies to a short paragraph.";
   const lang = b.language ? `Always respond in ${b.language}.` : "";
   const allowed = b.allowTopics?.length
     ? `You may ONLY discuss: ${b.allowTopics.join(", ")}. If asked about anything else, politely decline.`
@@ -113,8 +117,17 @@ function buildSystemPrompt(options: EmbedChatOptions, pageContext: string): stri
   const context = pageContext
     ? `\nPage context:\n---\n${pageContext}\n---`
     : "";
-  return [`You are ${name}, a ${personality} AI assistant.`, lengthHint, lang, allowed, blocked, rules, context]
-    .filter(Boolean).join("\n");
+  return [
+    `You are ${name}, a ${personality} AI assistant.`,
+    lengthHint,
+    lang,
+    allowed,
+    blocked,
+    rules,
+    context,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 const SHADOW_MAP: Record<string, string> = {
@@ -124,7 +137,12 @@ const SHADOW_MAP: Record<string, string> = {
   strong: "0 16px 64px rgba(0,0,0,.30)",
 };
 
-const DEFAULT_MODELS = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "gpt-4o-mini", "gemini-2.0-flash"];
+const DEFAULT_MODELS = [
+  "llama-3.1-8b-instant",
+  "llama-3.3-70b-versatile",
+  "gpt-4o-mini",
+  "gemini-2.0-flash",
+];
 
 export function embedChat(options: EmbedChatOptions): () => void {
   if (typeof document === "undefined") {
@@ -153,10 +171,15 @@ export function embedChat(options: EmbedChatOptions): () => void {
     zIndex = 99998,
     theme: t = {},
     controls: ctrl = {},
-    onOpen, onClose, onMessage, onError,
+    onOpen,
+    onClose,
+    onMessage,
+    onError,
   } = options;
 
-  const providerSubtitle = subtitle ?? `Powered by ${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
+  const providerSubtitle =
+    subtitle ??
+    `Powered by ${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
 
   const ai = new AIClient({ provider, apiKey, model: initialModel });
 
@@ -167,10 +190,12 @@ export function embedChat(options: EmbedChatOptions): () => void {
   const theme = {
     primaryColor: t.primaryColor ?? "#6366f1",
     panelBackground: t.panelBackground ?? (t.darkMode ? "#1e293b" : "#ffffff"),
-    userBubbleColor: t.userBubbleColor ?? (t.primaryColor ?? "#6366f1"),
+    userBubbleColor: t.userBubbleColor ?? t.primaryColor ?? "#6366f1",
     userBubbleText: t.userBubbleText ?? "#ffffff",
-    assistantBubbleColor: t.assistantBubbleColor ?? (t.darkMode ? "#334155" : "#f1f5f9"),
-    assistantBubbleText: t.assistantBubbleText ?? (t.darkMode ? "#e2e8f0" : "#1e293b"),
+    assistantBubbleColor:
+      t.assistantBubbleColor ?? (t.darkMode ? "#334155" : "#f1f5f9"),
+    assistantBubbleText:
+      t.assistantBubbleText ?? (t.darkMode ? "#e2e8f0" : "#1e293b"),
     fontFamily: t.fontFamily ?? "system-ui, sans-serif",
     fontSize: t.fontSize ?? 14,
     borderRadius: t.borderRadius ?? 16,
@@ -192,27 +217,39 @@ export function embedChat(options: EmbedChatOptions): () => void {
   };
 
   const modelList: string[] =
-    ctrl.modelSwitcher === true ? DEFAULT_MODELS
-    : Array.isArray(ctrl.modelSwitcher) ? ctrl.modelSwitcher
-    : [];
+    ctrl.modelSwitcher === true
+      ? DEFAULT_MODELS
+      : Array.isArray(ctrl.modelSwitcher)
+        ? ctrl.modelSwitcher
+        : [];
 
   let currentModel = defaultModel;
   let currentMaxTokens = initialMaxTokens;
   let currentTemperature = initialTemperature;
 
-  const pageContext = autoContext && !options.systemPrompt ? scrapePageContext(maxContextChars, contextSelector) : "";
+  const pageContext =
+    autoContext && !options.systemPrompt
+      ? scrapePageContext(maxContextChars, contextSelector)
+      : "";
   const systemPrompt = buildSystemPrompt(options, pageContext);
 
   const isRight = position === "bottom-right";
   const side = isRight ? "right: 24px;" : "left: 24px;";
   const origin = isRight ? "bottom right" : "bottom left";
-  const p = theme.primaryColor, bg = theme.panelBackground, fs = theme.fontSize;
-  const ff = theme.fontFamily, br = theme.borderRadius, bbr = theme.bubbleRadius;
-  const w = theme.width, mh = theme.messagesHeight;
+  const p = theme.primaryColor,
+    bg = theme.panelBackground,
+    fs = theme.fontSize;
+  const ff = theme.fontFamily,
+    br = theme.borderRadius,
+    bbr = theme.bubbleRadius;
+  const w = theme.width,
+    mh = theme.messagesHeight;
   const borderColor = t.darkMode ? "#334155" : "#e2e8f0";
   const inputBg = t.darkMode ? "#0f172a" : "#ffffff";
   const inputText = t.darkMode ? "#e2e8f0" : "#1e293b";
-  const subtitleColor = t.darkMode ? "rgba(255,255,255,.55)" : "rgba(255,255,255,.72)";
+  const subtitleColor = t.darkMode
+    ? "rgba(255,255,255,.55)"
+    : "rgba(255,255,255,.72)";
 
   const styleEl = document.createElement("style");
   styleEl.textContent = `
@@ -271,17 +308,28 @@ export function embedChat(options: EmbedChatOptions): () => void {
   `;
   document.head.appendChild(styleEl);
 
-  const hasSettings = controls.modelSwitcher || controls.temperatureControl || controls.maxTokensControl;
+  const hasSettings =
+    controls.modelSwitcher ||
+    controls.temperatureControl ||
+    controls.maxTokensControl;
   const headerTitle = title ?? assistantName;
-  const modelOptions = modelList.map((m) => `<option value="${m}"${m === currentModel ? " selected" : ""}>${m}</option>`).join("");
-  const settingsHTML = hasSettings ? `<div id="sgq-settings">
+  const modelOptions = modelList
+    .map(
+      (m) =>
+        `<option value="${m}"${m === currentModel ? " selected" : ""}>${m}</option>`
+    )
+    .join("");
+  const settingsHTML = hasSettings
+    ? `<div id="sgq-settings">
     ${controls.modelSwitcher ? `<label>Model<select id="sgq-model-select">${modelOptions}</select></label>` : ""}
     ${controls.temperatureControl ? `<label>Temperature<div class="sgq-row"><input type="range" id="sgq-temp-slider" min="0" max="1" step="0.05" value="${currentTemperature}" /><span id="sgq-temp-val">${currentTemperature}</span></div></label>` : ""}
     ${controls.maxTokensControl ? `<label>Max tokens<div class="sgq-row"><input type="range" id="sgq-tokens-slider" min="64" max="2048" step="64" value="${currentMaxTokens}" /><span id="sgq-tokens-val">${currentMaxTokens}</span></div></label>` : ""}
-  </div>` : "";
-  const suggestionsHTML = suggestedQuestions.length > 0
-    ? `<div id="sgq-suggestions">${suggestedQuestions.map((q) => `<button class="sgq-chip" type="button">${q}</button>`).join("")}</div>`
+  </div>`
     : "";
+  const suggestionsHTML =
+    suggestedQuestions.length > 0
+      ? `<div id="sgq-suggestions">${suggestedQuestions.map((q) => `<button class="sgq-chip" type="button">${q}</button>`).join("")}</div>`
+      : "";
 
   const root = document.createElement("div");
   root.id = "sgq-root";
@@ -321,30 +369,56 @@ export function embedChat(options: EmbedChatOptions): () => void {
   const messagesEl = root.querySelector("#sgq-messages") as HTMLDivElement;
   const inputEl = root.querySelector("#sgq-input") as HTMLInputElement;
   const sendBtn = root.querySelector("#sgq-send") as HTMLButtonElement;
-  const tokenBar = root.querySelector("#sgq-token-bar") as HTMLDivElement | null;
-  const settingsPanel = root.querySelector("#sgq-settings") as HTMLDivElement | null;
-  const settingsBtn = root.querySelector("#sgq-settings-btn") as HTMLButtonElement | null;
-  const clearBtn = root.querySelector("#sgq-clear-btn") as HTMLButtonElement | null;
-  const exportBtn = root.querySelector("#sgq-export-btn") as HTMLButtonElement | null;
-  const modelSelect = root.querySelector("#sgq-model-select") as HTMLSelectElement | null;
-  const tempSlider = root.querySelector("#sgq-temp-slider") as HTMLInputElement | null;
+  const tokenBar = root.querySelector(
+    "#sgq-token-bar"
+  ) as HTMLDivElement | null;
+  const settingsPanel = root.querySelector(
+    "#sgq-settings"
+  ) as HTMLDivElement | null;
+  const settingsBtn = root.querySelector(
+    "#sgq-settings-btn"
+  ) as HTMLButtonElement | null;
+  const clearBtn = root.querySelector(
+    "#sgq-clear-btn"
+  ) as HTMLButtonElement | null;
+  const exportBtn = root.querySelector(
+    "#sgq-export-btn"
+  ) as HTMLButtonElement | null;
+  const modelSelect = root.querySelector(
+    "#sgq-model-select"
+  ) as HTMLSelectElement | null;
+  const tempSlider = root.querySelector(
+    "#sgq-temp-slider"
+  ) as HTMLInputElement | null;
   const tempVal = root.querySelector("#sgq-temp-val") as HTMLSpanElement | null;
-  const tokensSlider = root.querySelector("#sgq-tokens-slider") as HTMLInputElement | null;
-  const tokensVal = root.querySelector("#sgq-tokens-val") as HTMLSpanElement | null;
-  const suggestionsEl = root.querySelector("#sgq-suggestions") as HTMLDivElement | null;
+  const tokensSlider = root.querySelector(
+    "#sgq-tokens-slider"
+  ) as HTMLInputElement | null;
+  const tokensVal = root.querySelector(
+    "#sgq-tokens-val"
+  ) as HTMLSpanElement | null;
+  const suggestionsEl = root.querySelector(
+    "#sgq-suggestions"
+  ) as HTMLDivElement | null;
 
   let open = false;
   const history: Message[] = [{ role: "system", content: systemPrompt }];
   let totalTokens = 0;
   const estimateTokens = (s: string) => Math.ceil(s.split(/\s+/).length * 1.35);
-  const scroll = () => { messagesEl.scrollTop = messagesEl.scrollHeight; };
+  const scroll = () => {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  };
 
-  const addMsgRow = (role: "user" | "assistant" | "error", text: string): HTMLElement => {
+  const addMsgRow = (
+    role: "user" | "assistant" | "error",
+    text: string
+  ): HTMLElement => {
     const row = document.createElement("div");
     row.className = `sgq-msg-row ${role}`;
     if (role === "assistant") {
       const av = document.createElement("div");
-      av.className = "sgq-msg-avatar"; av.textContent = assistantAvatar;
+      av.className = "sgq-msg-avatar";
+      av.textContent = assistantAvatar;
       row.appendChild(av);
     }
     const bubble = document.createElement("div");
@@ -352,25 +426,36 @@ export function embedChat(options: EmbedChatOptions): () => void {
     bubble.textContent = text;
     if (controls.allowCopy && (role === "user" || role === "assistant")) {
       const copyBtn = document.createElement("button");
-      copyBtn.className = "sgq-copy-btn"; copyBtn.textContent = "copy";
+      copyBtn.className = "sgq-copy-btn";
+      copyBtn.textContent = "copy";
       copyBtn.addEventListener("click", () => {
         navigator.clipboard.writeText(bubble.textContent ?? "").catch(() => {});
         copyBtn.textContent = "✓";
-        setTimeout(() => { copyBtn.textContent = "copy"; }, 1500);
+        setTimeout(() => {
+          copyBtn.textContent = "copy";
+        }, 1500);
       });
       bubble.appendChild(copyBtn);
     }
-    row.appendChild(bubble); messagesEl.appendChild(row); scroll();
+    row.appendChild(bubble);
+    messagesEl.appendChild(row);
+    scroll();
     return bubble;
   };
 
   const showTyping = (): HTMLElement => {
     const row = document.createElement("div");
     row.className = "sgq-msg-row assistant";
-    const av = document.createElement("div"); av.className = "sgq-msg-avatar"; av.textContent = assistantAvatar;
-    const dots = document.createElement("div"); dots.className = "sgq-typing";
+    const av = document.createElement("div");
+    av.className = "sgq-msg-avatar";
+    av.textContent = assistantAvatar;
+    const dots = document.createElement("div");
+    dots.className = "sgq-typing";
     dots.innerHTML = "<span></span><span></span><span></span>";
-    row.appendChild(av); row.appendChild(dots); messagesEl.appendChild(row); scroll();
+    row.appendChild(av);
+    row.appendChild(dots);
+    messagesEl.appendChild(row);
+    scroll();
     return row;
   };
 
@@ -379,33 +464,58 @@ export function embedChat(options: EmbedChatOptions): () => void {
     panel.classList.toggle("sgq-hidden", !open);
     root.classList.toggle("sgq-open", open);
     btn.setAttribute("aria-expanded", String(open));
-    if (open) { inputEl.focus(); onOpen?.(); } else onClose?.();
+    if (open) {
+      inputEl.focus();
+      onOpen?.();
+    } else onClose?.();
   };
 
   btn.addEventListener("click", toggle);
   closeBtn.addEventListener("click", toggle);
-  settingsBtn?.addEventListener("click", () => { settingsPanel?.classList.toggle("sgq-vis"); });
-  modelSelect?.addEventListener("change", () => { currentModel = modelSelect.value; });
-  tempSlider?.addEventListener("input", () => { currentTemperature = parseFloat(tempSlider.value); if (tempVal) tempVal.textContent = currentTemperature.toFixed(2); });
-  tokensSlider?.addEventListener("input", () => { currentMaxTokens = parseInt(tokensSlider.value, 10); if (tokensVal) tokensVal.textContent = String(currentMaxTokens); });
+  settingsBtn?.addEventListener("click", () => {
+    settingsPanel?.classList.toggle("sgq-vis");
+  });
+  modelSelect?.addEventListener("change", () => {
+    currentModel = modelSelect.value;
+  });
+  tempSlider?.addEventListener("input", () => {
+    currentTemperature = parseFloat(tempSlider.value);
+    if (tempVal) tempVal.textContent = currentTemperature.toFixed(2);
+  });
+  tokensSlider?.addEventListener("input", () => {
+    currentMaxTokens = parseInt(tokensSlider.value, 10);
+    if (tokensVal) tokensVal.textContent = String(currentMaxTokens);
+  });
 
   clearBtn?.addEventListener("click", () => {
-    history.length = 1; messagesEl.innerHTML = ""; totalTokens = 0;
+    history.length = 1;
+    messagesEl.innerHTML = "";
+    totalTokens = 0;
     if (tokenBar) tokenBar.textContent = "";
     if (suggestionsEl) suggestionsEl.style.display = "flex";
     if (welcomeMessage) addMsgRow("assistant", welcomeMessage);
   });
 
   exportBtn?.addEventListener("click", () => {
-    const lines = history.filter((m) => m.role !== "system").map((m) => `[${m.role.toUpperCase()}]\n${m.content}`).join("\n\n---\n\n");
+    const lines = history
+      .filter((m) => m.role !== "system")
+      .map((m) => `[${m.role.toUpperCase()}]\n${m.content}`)
+      .join("\n\n---\n\n");
     const blob = new Blob([lines], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "chat-export.txt"; a.click();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "chat-export.txt";
+    a.click();
     URL.revokeObjectURL(url);
   });
 
   suggestionsEl?.querySelectorAll(".sgq-chip").forEach((chip) => {
-    chip.addEventListener("click", () => { inputEl.value = (chip as HTMLElement).textContent ?? ""; if (suggestionsEl) suggestionsEl.style.display = "none"; sendMessage(); });
+    chip.addEventListener("click", () => {
+      inputEl.value = (chip as HTMLElement).textContent ?? "";
+      if (suggestionsEl) suggestionsEl.style.display = "none";
+      sendMessage();
+    });
   });
 
   let activeStream: AbortableStream | null = null;
@@ -413,26 +523,38 @@ export function embedChat(options: EmbedChatOptions): () => void {
   const sendMessage = async () => {
     const text = inputEl.value.trim();
     if (!text) return;
-    inputEl.value = ""; sendBtn.disabled = true;
+    inputEl.value = "";
+    sendBtn.disabled = true;
     if (suggestionsEl) suggestionsEl.style.display = "none";
     addMsgRow("user", text);
     history.push({ role: "user", content: text });
     const typingRow = showTyping();
     try {
-      activeStream = ai.stream(history, { model: currentModel, maxTokens: currentMaxTokens, temperature: currentTemperature, topP });
+      activeStream = ai.stream(history, {
+        model: currentModel,
+        maxTokens: currentMaxTokens,
+        temperature: currentTemperature,
+        topP,
+      });
       typingRow.remove();
       const bubble = addMsgRow("assistant", "");
       let fullContent = "";
       for await (const chunk of activeStream) {
         fullContent += chunk.content;
         const copyBtn = bubble.querySelector(".sgq-copy-btn");
-        bubble.childNodes.forEach((n) => { if (n.nodeType === 3) n.remove(); });
-        bubble.insertBefore(document.createTextNode(fullContent), copyBtn ?? null);
+        bubble.childNodes.forEach((n) => {
+          if (n.nodeType === 3) n.remove();
+        });
+        bubble.insertBefore(
+          document.createTextNode(fullContent),
+          copyBtn ?? null
+        );
         scroll();
       }
       history.push({ role: "assistant", content: fullContent });
       totalTokens += estimateTokens(text) + estimateTokens(fullContent);
-      if (tokenBar) tokenBar.textContent = `~${totalTokens} tokens · ${currentModel}`;
+      if (tokenBar)
+        tokenBar.textContent = `~${totalTokens} tokens · ${currentModel}`;
       onMessage?.(text, fullContent);
     } catch (err) {
       if (typingRow.isConnected) typingRow.remove();
@@ -447,8 +569,17 @@ export function embedChat(options: EmbedChatOptions): () => void {
   };
 
   sendBtn.addEventListener("click", sendMessage);
-  inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
   if (welcomeMessage) addMsgRow("assistant", welcomeMessage);
 
-  return () => { activeStream?.cancel(); root.remove(); styleEl.remove(); };
+  return () => {
+    activeStream?.cancel();
+    root.remove();
+    styleEl.remove();
+  };
 }
