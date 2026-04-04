@@ -121,5 +121,9 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "dependencies": {
+    "@emnapi/core": "^1.9.2",
+    "@emnapi/runtime": "^1.9.2"
+  }
 }
