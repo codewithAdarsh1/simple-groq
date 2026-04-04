@@ -91,7 +91,7 @@ export class CohereAdapter implements ProviderAdapter {
         const { done, value } = await reader.read();
         if (done) break;
         buf += decoder.decode(value, { stream: true });
-        const lines = buf.split("\n");
+        const lines = buf.split(/\r?\n/);
         buf = lines.pop() ?? "";
 
         for (const line of lines) {
@@ -102,6 +102,8 @@ export class CohereAdapter implements ProviderAdapter {
               type: string;
               delta?: { message?: { content?: { text?: string } } };
               finish_reason?: string;
+              message?: string;
+              error_type?: string;
             };
             if (json.type === "content-delta") {
               yield {
@@ -115,8 +117,15 @@ export class CohereAdapter implements ProviderAdapter {
                 done: true,
                 finishReason: json.finish_reason ?? "stop",
               };
+            } else if (json.type === "error") {
+              throw new AIError(json.message ?? "Cohere stream error", {
+                type: json.error_type,
+              });
             }
-          } catch {}
+          } catch (e) {
+            if (e instanceof AIError) throw e;
+            /* ignore parse errors */
+          }
         }
       }
     } finally {

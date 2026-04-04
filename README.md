@@ -5,8 +5,10 @@
 **The Universal, Zero-Dependency Mega-Wrapper for 18 Generative AI APIs.**
 
 [![npm version](https://img.shields.io/npm/v/multi-ai-sdk?color=000000&style=for-the-badge&logo=npm)](https://www.npmjs.com/package/multi-ai-sdk)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/multi-ai-sdk?style=for-the-badge)](https://bundlephobia.com/package/multi-ai-sdk)
+[![Downloads](https://img.shields.io/npm/dm/multi-ai-sdk?style=for-the-badge)](https://www.npmjs.com/package/multi-ai-sdk)
+[![Zero Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen?style=for-the-badge)](https://www.npmjs.com/package/multi-ai-sdk)
 [![TypeScript](https://img.shields.io/badge/TypeScript-READY-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](./LICENSE)
 
 <p align="center">
   Tired of juggling the official <code>openai</code>, <code>@anthropic-ai/sdk</code>, and <code>@google/generative-ai</code> packages? <br/>
@@ -26,8 +28,34 @@
 
 ---
 
+## 🆚 vs Other SDKs
+
+| Feature | multi-ai-sdk | openai | @anthropic-ai/sdk | langchain |
+|---|:---:|:---:|:---:|:---:|
+| Providers | **18** | 1 | 1 | many |
+| Bundle size | **< 10KB** | ~500KB | ~200KB | ~5MB |
+| Dependencies | **0** | several | several | many |
+| Browser/Edge | ✅ | ❌ | ❌ | ❌ |
+| Auto-fallback | ✅ | ❌ | ❌ | partial |
+| Chat widget | ✅ | ❌ | ❌ | ❌ |
+
+---
+
+## 🤖 Common Use Cases
+
+- 🤖 **Chatbots** — embed a widget on any site in 2 lines
+- 🔀 **Provider switching** — swap OpenAI for Groq without rewriting code  
+- 💸 **Cost control** — token budgets + cost tracking built in
+- 🌐 **Edge AI** — runs in Cloudflare Workers, Vercel Edge, Bun, Deno
+- 🔁 **Resilient apps** — auto-fallback when providers go down
+- 📦 **Micro-tools** — zero deps means no supply chain bloat
+
+---
+
 ## 📋 Table of Contents
 
+- [vs Other SDKs](#-vs-other-sdks)
+- [Common Use Cases](#-common-use-cases)
 - [Supported Providers](#-supported-providers)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
@@ -67,6 +95,8 @@
 | **Moonshot (Kimi)** | `"moonshot"` | `MOONSHOT_MODELS` |
 | **Azure OpenAI** | `"azure"` | *Pass custom `baseUrl`* |
 | **Ollama (local)** | `"ollama"` | *Requires no API key* |
+
+> **Note for Claude/Anthropic users:** Use `provider: "anthropic"` — supports Claude 3.5 Sonnet, Claude 3 Opus, and Haiku out of the box.
 
 ---
 

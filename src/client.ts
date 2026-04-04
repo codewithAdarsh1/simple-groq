@@ -7,22 +7,31 @@
  */
 
 // ─── Re-export core types ─────────────────────────────────────────────────────
-export type {
+import type {
   Role,
   Message,
   CompletionOptions,
   StreamChunk,
   ProviderAdapter,
 } from "./providers/base";
-export { AIError, sleep, stripMarkdownText } from "./providers/base";
-
-import type {
-  Message,
-  CompletionOptions,
-  StreamChunk,
-  ProviderAdapter,
+import {
+  AIError,
+  sleep,
+  stripMarkdownText,
+  estimateTokens,
+  repairJSON,
+  schemaToPrompt,
 } from "./providers/base";
-import { AIError, sleep, stripMarkdownText } from "./providers/base";
+
+export type { Role, Message, CompletionOptions, StreamChunk, ProviderAdapter };
+export {
+  AIError,
+  sleep,
+  stripMarkdownText,
+  estimateTokens,
+  repairJSON,
+  schemaToPrompt,
+};
 
 // ─── Provider adapters ────────────────────────────────────────────────────────
 import { GroqAdapter } from "./providers/groq";
@@ -196,9 +205,7 @@ function estimateCostUSD(
   return (rates.input * inputTokens + rates.output * outputTokens) / 1_000_000;
 }
 
-function estimateTokens(text: string): number {
-  return Math.ceil(text.split(/\s+/).length * 1.35);
-}
+// (estimateTokens removed — moved to base.ts)
 
 // ─── Multi-key rotation ───────────────────────────────────────────────────────
 class MultiKeyManager {
@@ -212,16 +219,23 @@ class MultiKeyManager {
 
   get(): string {
     const now = Date.now();
-    for (let i = 0; i < this.keys.length; i++) {
-      const k = this.keys[(this.idx + i) % this.keys.length]!;
+    let bestKey = this.keys[0]!;
+    let minCoolsAt = Infinity;
+
+    for (const k of this.keys) {
       const coolsAt = this.cooldown.get(k) ?? 0;
       if (now >= coolsAt) {
-        this.idx = (this.idx + i + 1) % this.keys.length;
+        // Found a ready key — use it and cycle index
+        this.idx = (this.keys.indexOf(k) + 1) % this.keys.length;
         return k;
       }
+      if (coolsAt < minCoolsAt) {
+        minCoolsAt = coolsAt;
+        bestKey = k;
+      }
     }
-    // All in cooldown — return least-recently cooled
-    return this.keys[this.idx % this.keys.length]!;
+    // All in cooldown — return the one that cools soonest
+    return bestKey;
   }
 
   markCooldown(key: string, ms = 60_000): void {
@@ -231,46 +245,23 @@ class MultiKeyManager {
 
 // ─── Context window guard ──────────────────────────────────────────────────────
 function trimMessages(messages: Message[], limit: number): Message[] {
-  const system = messages.filter((m) => m.role === "system");
+  // Bug 11: Keep only the LAST system message (or first, but usually best to have just one)
+  const allSystem = messages.filter((m) => m.role === "system");
+  const system = allSystem.slice(-1); // Keep only the last one
   const rest = messages.filter((m) => m.role !== "system");
   let tokens = system.reduce((s, m) => s + estimateTokens(m.content), 0);
   const kept: Message[] = [];
   // Walk from newest to oldest
   for (let i = rest.length - 1; i >= 0; i--) {
     const t = estimateTokens(rest[i]!.content);
-    if (tokens + t > limit * 0.9) break;
+    if (tokens + t > limit * 0.95) break; // Slightly more buffer
     tokens += t;
     kept.unshift(rest[i]!);
   }
   return [...system, ...kept];
 }
 
-// ─── JSON repair ──────────────────────────────────────────────────────────────
-function repairJSON(raw: string): string {
-  // Strip markdown code fences
-  let s = raw
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/, "")
-    .trim();
-  // Strip leading/trailing text before first { or [
-  const jsonStart = s.search(/[{[]/);
-  if (jsonStart > 0) s = s.slice(jsonStart);
-  const jsonEnd = Math.max(s.lastIndexOf("}"), s.lastIndexOf("]"));
-  if (jsonEnd >= 0 && jsonEnd < s.length - 1) s = s.slice(0, jsonEnd + 1);
-  // Fix trailing commas
-  s = s.replace(/,\s*([}\]])/g, "$1");
-  // Attempt parse — return as-is if successful
-  try {
-    JSON.parse(s);
-    return s;
-  } catch {}
-  // Last resort: wrap in quotes if it looks like a bare string
-  return s;
-}
-
-function schemaToPrompt(schema: Record<string, unknown>): string {
-  return `Respond with ONLY valid JSON matching this schema:\n${JSON.stringify(schema, null, 2)}\nNo explanation, no markdown, no extra text.`;
-}
+// (repairJSON and schemaToPrompt removed — moved to base.ts)
 
 // ─── Cost tracker ──────────────────────────────────────────────────────────────
 export interface CostEntry {
@@ -482,10 +473,10 @@ export class AIClient {
   }
 
   private async withRetryAndFallback<T>(
-    fn: (adapter: ProviderAdapter, key: string) => Promise<T>
+    fn: (adapter: ProviderAdapter, key: string, model?: string) => Promise<T>
   ): Promise<T> {
     const targets = [
-      { adapter: this.adapter, keyMgr: this.keyMgr },
+      { adapter: this.adapter, keyMgr: this.keyMgr, model: this.defaultModel },
       ...this.fallbacks,
     ];
 
@@ -495,12 +486,15 @@ export class AIClient {
         if (attempt > 0) await sleep(1000 * 2 ** (attempt - 1));
         const key = target.keyMgr.get();
         try {
-          return await fn(target.adapter, key);
+          return await fn(target.adapter, key, target.model);
         } catch (err) {
           const status = (err as AIError).status;
           if (status === 429) target.keyMgr.markCooldown(key, 60_000);
           lastErr = err;
-          if (status && status < 500 && status !== 429) break; // non-retryable
+          // Bug 9: break BOTH loops on non-retryable errors
+          if (status && status < 500 && status !== 429) {
+            throw lastErr;
+          }
         }
       }
     }
@@ -510,14 +504,17 @@ export class AIClient {
   /** Chat: send messages, get string back. */
   async chat(messages: Message[], opts?: CompletionOptions): Promise<string> {
     const prepared = this.prepareMessages(messages);
-    const model = this.resolveModel(opts);
-    const result = await this.withRetryAndFallback((ad, key) =>
-      ad.chat(prepared, { ...opts, model }, key)
+    const result = await this.withRetryAndFallback((ad, key, targetModel) =>
+      ad.chat(prepared, { ...opts, model: opts?.model ?? targetModel }, key)
     );
     const text = this.postProcess(result);
     if (this.cost) {
       const inp = prepared.reduce((s, m) => s + estimateTokens(m.content), 0);
-      this.cost.record(model, inp, text);
+      this.cost.record(
+        opts?.model ?? this.defaultModel,
+        inp,
+        estimateTokens(text)
+      );
     }
     return text;
   }
@@ -537,7 +534,7 @@ export class AIClient {
    */
   async askJSON<T = unknown>(prompt: string, opts?: ChatOptions): Promise<T> {
     const sysPrefix =
-      "Respond with ONLY valid JSON. No explanation, no markdown fences.";
+      "Respond with ONLY valid JSON. No explanation, no markdown code fences.";
     const augmented: ChatOptions = {
       ...opts,
       systemPrompt: opts?.systemPrompt
@@ -548,13 +545,15 @@ export class AIClient {
       const raw = await this.ask(
         attempt === 0
           ? prompt
-          : `${prompt}\n\nReturn ONLY raw JSON, no markdown.`,
+          : `${prompt}\n\nIMPORTANT: Return ONLY the raw JSON string. No markdown, no explanation.`,
         augmented
       );
       const repaired = repairJSON(raw);
       try {
         return JSON.parse(repaired) as T;
-      } catch {}
+      } catch (err) {
+        /* ignore */
+      }
     }
     throw new AIError("Failed to get valid JSON after 3 attempts.");
   }
@@ -585,7 +584,9 @@ export class AIClient {
           (k) => !k.startsWith("$") && k !== "type" && k !== "description"
         );
         if (required.every((k) => k in (parsed as object))) return parsed;
-      } catch {}
+      } catch (err) {
+        /* ignore */
+      }
     }
     throw new AIError(
       "Failed to get structured response matching schema after 3 attempts."
@@ -601,50 +602,40 @@ export class AIClient {
    */
   stream(messages: Message[], opts?: StreamOptions): AbortableStream {
     const prepared = this.prepareMessages(messages);
-    const model = this.resolveModel(opts);
     const controller = new AbortController();
-    const self = this;
+
+    const targets = [
+      { adapter: this.adapter, keyMgr: this.keyMgr, model: this.defaultModel },
+      ...this.fallbacks,
+    ];
 
     const iterable: AbortableStream = {
       cancel() {
         controller.abort();
       },
-      [Symbol.asyncIterator](): AsyncIterator<StreamChunk> {
-        const targets = [
-          { adapter: self.adapter, keyMgr: self.keyMgr },
-          ...self.fallbacks,
-        ];
-        let gen: AsyncGenerator<StreamChunk, void, unknown> | null = null;
+      async *[Symbol.asyncIterator]() {
         let targetIdx = 0;
-
-        async function* combinedGen(): AsyncGenerator<
-          StreamChunk,
-          void,
-          unknown
-        > {
-          while (targetIdx < targets.length) {
-            const target = targets[targetIdx]!;
-            const key = target.keyMgr.get();
-            try {
-              gen = target.adapter.stream(
-                prepared,
-                { ...opts, model },
-                key,
-                controller.signal
-              );
-              for await (const chunk of gen) {
-                if (controller.signal.aborted) return;
-                yield chunk;
-              }
-              return;
-            } catch (err) {
+        while (targetIdx < targets.length) {
+          const target = targets[targetIdx]!;
+          const key = target.keyMgr.get();
+          try {
+            const gen = target.adapter.stream(
+              prepared,
+              { ...opts, model: opts?.model ?? target.model },
+              key,
+              controller.signal
+            );
+            for await (const chunk of gen) {
               if (controller.signal.aborted) return;
-              targetIdx++;
-              if (targetIdx >= targets.length) throw err;
+              yield chunk;
             }
+            return;
+          } catch (err) {
+            if (controller.signal.aborted) return;
+            targetIdx++;
+            if (targetIdx >= targets.length) throw err;
           }
         }
-        return combinedGen()[Symbol.asyncIterator]();
       },
     };
     return iterable;

@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { AIClient, GROQ_MODELS } from "./client";
-import { AIError } from "./providers/base";
+import { AIClient } from "./client";
 
 describe("AIClient", () => {
   it("should initialize with default provider (groq)", () => {

@@ -14,9 +14,9 @@ export class AzureAdapter extends OpenAICompatAdapter {
     this.apiVersion = opts.apiVersion ?? "2024-02-01";
   }
 
-  protected override endpoint(): string {
-    const model = this.defaultModel;
-    return `${this.baseUrl}/openai/deployments/${model}/chat/completions?api-version=${this.apiVersion}`;
+  protected override endpoint(model?: string): string {
+    const deployment = model ?? this.defaultModel;
+    return `${this.baseUrl}/openai/deployments/${deployment}/chat/completions?api-version=${this.apiVersion}`;
   }
 
   protected override buildHeaders(apiKey: string): Record<string, string> {

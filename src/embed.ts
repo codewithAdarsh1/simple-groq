@@ -6,7 +6,7 @@
 // BUG FIX: import AbortableStream from "./client" directly, NOT from "./index".
 // Importing from "./index" created a circular dependency:
 //   index.ts → embed.ts → index.ts
-import { AIClient } from "./client";
+import { AIClient, estimateTokens } from "./client";
 import type { ProviderName, AbortableStream } from "./client";
 import type { Message } from "./providers/base";
 
@@ -74,6 +74,15 @@ export interface EmbedChatOptions {
   onClose?: () => void;
   onMessage?: (userText: string, assistantReply: string) => void;
   onError?: (error: Error) => void;
+}
+
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function scrapePageContext(maxChars = 4000, selector = "body"): string {
@@ -180,6 +189,10 @@ export function embedChat(options: EmbedChatOptions): () => void {
   const providerSubtitle =
     subtitle ??
     `Powered by ${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
+
+  const escapedTitle = escapeHtml(title ?? assistantName);
+  const escapedSubtitle = escapeHtml(providerSubtitle);
+  const escapedWelcome = welcomeMessage ? escapeHtml(welcomeMessage) : "";
 
   const ai = new AIClient({ provider, apiKey, model: initialModel });
 
@@ -312,7 +325,7 @@ export function embedChat(options: EmbedChatOptions): () => void {
     controls.modelSwitcher ||
     controls.temperatureControl ||
     controls.maxTokensControl;
-  const headerTitle = title ?? assistantName;
+  const headerTitle = escapedTitle;
   const modelOptions = modelList
     .map(
       (m) =>
@@ -343,7 +356,7 @@ export function embedChat(options: EmbedChatOptions): () => void {
         <div id="sgq-header-avatar">${assistantAvatar}</div>
         <div id="sgq-header-info">
           <div id="sgq-header-name">${headerTitle}</div>
-          <div id="sgq-header-sub">${providerSubtitle}</div>
+          <div id="sgq-header-sub">${escapedSubtitle}</div>
         </div>
         <div id="sgq-header-actions">
           ${hasSettings ? `<button id="sgq-settings-btn" title="Settings">⚙️</button>` : ""}
@@ -402,9 +415,9 @@ export function embedChat(options: EmbedChatOptions): () => void {
   ) as HTMLDivElement | null;
 
   let open = false;
-  const history: Message[] = [{ role: "system", content: systemPrompt }];
+  const chatHistory: Message[] = [{ role: "system", content: systemPrompt }];
+  const MAX_HISTORY = 40; // Bug 12: prevent memory leaks/unbounded growth
   let totalTokens = 0;
-  const estimateTokens = (s: string) => Math.ceil(s.split(/\s+/).length * 1.35);
   const scroll = () => {
     messagesEl.scrollTop = messagesEl.scrollHeight;
   };
@@ -473,31 +486,35 @@ export function embedChat(options: EmbedChatOptions): () => void {
   btn.addEventListener("click", toggle);
   closeBtn.addEventListener("click", toggle);
   settingsBtn?.addEventListener("click", () => {
-    settingsPanel?.classList.toggle("sgq-vis");
+    if (settingsPanel) settingsPanel.classList.toggle("sgq-vis");
   });
   modelSelect?.addEventListener("change", () => {
-    currentModel = modelSelect.value;
+    if (modelSelect) currentModel = modelSelect.value;
   });
   tempSlider?.addEventListener("input", () => {
-    currentTemperature = parseFloat(tempSlider.value);
-    if (tempVal) tempVal.textContent = currentTemperature.toFixed(2);
+    if (tempSlider) {
+      currentTemperature = parseFloat(tempSlider.value);
+      if (tempVal) tempVal.textContent = currentTemperature.toFixed(2);
+    }
   });
   tokensSlider?.addEventListener("input", () => {
-    currentMaxTokens = parseInt(tokensSlider.value, 10);
-    if (tokensVal) tokensVal.textContent = String(currentMaxTokens);
+    if (tokensSlider) {
+      currentMaxTokens = parseInt(tokensSlider.value, 10);
+      if (tokensVal) tokensVal.textContent = String(currentMaxTokens);
+    }
   });
 
   clearBtn?.addEventListener("click", () => {
-    history.length = 1;
+    chatHistory.length = 1;
     messagesEl.innerHTML = "";
     totalTokens = 0;
     if (tokenBar) tokenBar.textContent = "";
     if (suggestionsEl) suggestionsEl.style.display = "flex";
-    if (welcomeMessage) addMsgRow("assistant", welcomeMessage);
+    if (welcomeMessage) addMsgRow("assistant", escapedWelcome);
   });
 
   exportBtn?.addEventListener("click", () => {
-    const lines = history
+    const lines = chatHistory
       .filter((m) => m.role !== "system")
       .map((m) => `[${m.role.toUpperCase()}]\n${m.content}`)
       .join("\n\n---\n\n");
@@ -512,7 +529,7 @@ export function embedChat(options: EmbedChatOptions): () => void {
 
   suggestionsEl?.querySelectorAll(".sgq-chip").forEach((chip) => {
     chip.addEventListener("click", () => {
-      inputEl.value = (chip as HTMLElement).textContent ?? "";
+      if (inputEl) inputEl.value = (chip as HTMLElement).textContent ?? "";
       if (suggestionsEl) suggestionsEl.style.display = "none";
       sendMessage();
     });
@@ -521,16 +538,23 @@ export function embedChat(options: EmbedChatOptions): () => void {
   let activeStream: AbortableStream | null = null;
 
   const sendMessage = async () => {
+    if (!inputEl) return;
     const text = inputEl.value.trim();
     if (!text) return;
     inputEl.value = "";
-    sendBtn.disabled = true;
+    if (sendBtn) sendBtn.disabled = true;
     if (suggestionsEl) suggestionsEl.style.display = "none";
     addMsgRow("user", text);
-    history.push({ role: "user", content: text });
+    chatHistory.push({ role: "user", content: text });
+
+    // Bug 12: Trim chatHistory if it exceeds limit
+    if (chatHistory.length > MAX_HISTORY) {
+      chatHistory.splice(1, chatHistory.length - MAX_HISTORY);
+    }
+
     const typingRow = showTyping();
     try {
-      activeStream = ai.stream(history, {
+      activeStream = ai.stream(chatHistory, {
         model: currentModel,
         maxTokens: currentMaxTokens,
         temperature: currentTemperature,
@@ -542,7 +566,7 @@ export function embedChat(options: EmbedChatOptions): () => void {
       for await (const chunk of activeStream) {
         fullContent += chunk.content;
         const copyBtn = bubble.querySelector(".sgq-copy-btn");
-        bubble.childNodes.forEach((n) => {
+        Array.from(bubble.childNodes).forEach((n) => {
           if (n.nodeType === 3) n.remove();
         });
         bubble.insertBefore(
@@ -551,7 +575,7 @@ export function embedChat(options: EmbedChatOptions): () => void {
         );
         scroll();
       }
-      history.push({ role: "assistant", content: fullContent });
+      chatHistory.push({ role: "assistant", content: fullContent });
       totalTokens += estimateTokens(text) + estimateTokens(fullContent);
       if (tokenBar)
         tokenBar.textContent = `~${totalTokens} tokens · ${currentModel}`;
@@ -563,7 +587,7 @@ export function embedChat(options: EmbedChatOptions): () => void {
       onError?.(e);
     } finally {
       activeStream = null;
-      sendBtn.disabled = false;
+      if (sendBtn) sendBtn.disabled = false;
       inputEl.focus();
     }
   };
@@ -575,7 +599,7 @@ export function embedChat(options: EmbedChatOptions): () => void {
       sendMessage();
     }
   });
-  if (welcomeMessage) addMsgRow("assistant", welcomeMessage);
+  if (welcomeMessage) addMsgRow("assistant", escapedWelcome);
 
   return () => {
     activeStream?.cancel();

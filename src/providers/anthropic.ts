@@ -108,7 +108,7 @@ export class AnthropicAdapter implements ProviderAdapter {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
+        const lines = buffer.split(/\r?\n/);
         buffer = lines.pop() ?? "";
 
         let eventType = "";
@@ -144,7 +144,9 @@ export class AnthropicAdapter implements ProviderAdapter {
               yield { content: "", done: true, finishReason: "stop" };
               return;
             }
-          } catch {}
+          } catch {
+            /* ignore parse errors in stream */
+          }
         }
       }
     } finally {

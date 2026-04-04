@@ -48,6 +48,8 @@ export interface ProviderAdapter {
 
 // ─── Error ────────────────────────────────────────────────────────────────────
 
+// ─── Shared Utilities ─────────────────────────────────────────────────────────
+
 export class AIError extends Error {
   readonly status?: number;
   readonly type?: string;
@@ -65,10 +67,49 @@ export class AIError extends Error {
   }
 }
 
-// ─── Utilities ────────────────────────────────────────────────────────────────
-
 export function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms));
+  const jitter = Math.random() * 200; // Opt 3: add jitter
+  return new Promise((r) => setTimeout(r, ms + jitter));
+}
+
+/** Estimated tokens in a string (rough heuristic). */
+export function estimateTokens(text: string): number {
+  return Math.ceil(text.split(/\s+/).length * 1.35);
+}
+
+/**
+ * Attempt to repair malformed JSON strings from AI responses.
+ * Fixes markdown fences, trailing commas, and prefix/suffix text.
+ */
+export function repairJSON(raw: string): string {
+  // Opt 2: fast-path for valid JSON
+  try {
+    JSON.parse(raw);
+    return raw;
+  } catch (err) {
+    /* ignore */
+  }
+
+  let s = raw
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+  const jsonStart = s.search(/[{[]/);
+  if (jsonStart > 0) s = s.slice(jsonStart);
+  const jsonEnd = Math.max(s.lastIndexOf("}"), s.lastIndexOf("]"));
+  if (jsonEnd >= 0 && jsonEnd < s.length - 1) s = s.slice(0, jsonEnd + 1);
+  s = s.replace(/,\s*([}\]])/g, "$1");
+  try {
+    JSON.parse(s);
+    return s;
+  } catch (err) {
+    /* ignore */
+  }
+  return s;
+}
+
+export function schemaToPrompt(schema: Record<string, unknown>): string {
+  return `Respond with ONLY valid JSON matching this schema:\n${JSON.stringify(schema, null, 2)}\nNo explanation, no markdown, no extra text.`;
 }
 
 /** Strip markdown formatting from a string. */
@@ -103,11 +144,12 @@ export async function* parseSSE(
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
+      const lines = buffer.split(/\r?\n/); // Bug 1: handle CRLF
       buffer = lines.pop() ?? "";
       for (const line of lines) {
         const t = line.trim();
-        if (!t || t === "data: [DONE]") continue;
+        // Bug 1: skip comments (keepalive) and empty lines
+        if (!t || t.startsWith(":") || t === "data: [DONE]") continue;
         if (t.startsWith("data: ")) yield t.slice(6);
       }
     }
@@ -154,7 +196,7 @@ export abstract class OpenAICompatAdapter implements ProviderAdapter {
     return body;
   }
 
-  protected endpoint(): string {
+  protected endpoint(_model?: string): string {
     return `${this.baseUrl}/chat/completions`;
   }
 
@@ -165,7 +207,9 @@ export abstract class OpenAICompatAdapter implements ProviderAdapter {
       } = {};
       try {
         body = await res.json();
-      } catch {}
+      } catch {
+        /* ignore parse errors */
+      }
       throw new AIError(body.error?.message ?? `API error ${res.status}`, {
         status: res.status,
         type: body.error?.type,
@@ -179,7 +223,7 @@ export abstract class OpenAICompatAdapter implements ProviderAdapter {
     opts: CompletionOptions | undefined,
     apiKey: string
   ): Promise<string> {
-    const res = await fetch(this.endpoint(), {
+    const res = await fetch(this.endpoint(opts?.model), {
       method: "POST",
       headers: this.buildHeaders(apiKey),
       body: JSON.stringify(this.buildBody(messages, opts, false)),
@@ -197,7 +241,7 @@ export abstract class OpenAICompatAdapter implements ProviderAdapter {
     apiKey: string,
     signal?: AbortSignal
   ): AsyncGenerator<StreamChunk, void, unknown> {
-    const res = await fetch(this.endpoint(), {
+    const res = await fetch(this.endpoint(opts?.model), {
       method: "POST",
       headers: this.buildHeaders(apiKey),
       body: JSON.stringify(this.buildBody(messages, opts, true)),
@@ -221,7 +265,11 @@ export abstract class OpenAICompatAdapter implements ProviderAdapter {
           done: choice.finish_reason != null,
           finishReason: choice.finish_reason,
         };
-      } catch {}
+      } catch (err) {
+        /* ignore parse errors */
+      }
     }
+    // Bug 2: ensure terminal chunk even on early exit
+    yield { content: "", done: true, finishReason: "end" };
   }
 }

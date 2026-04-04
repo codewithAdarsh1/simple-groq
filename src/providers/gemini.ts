@@ -147,7 +147,9 @@ export class GeminiAdapter implements ProviderAdapter {
           done: !!cand.finishReason,
           finishReason: cand.finishReason ?? null,
         };
-      } catch {}
+      } catch (err) {
+        /* ignore */
+      }
     }
   }
 }
