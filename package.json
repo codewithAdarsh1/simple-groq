@@ -1,6 +1,6 @@
 {
   "name": "multi-ai-sdk",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Universal AI SDK — one API for OpenAI, Anthropic Claude, Google Gemini, Groq, Mistral, DeepSeek, Grok, Ollama & 10 more. Zero dependencies, pure fetch. Auto-fallback, streaming, JSON repair, embeddable chat widget. Works in Node.js, Bun, Deno, Cloudflare Workers.",
   "keywords": [
     "ai",
